@@ -1,0 +1,14 @@
+# Don't commit files with actual passwords
+*-private.json
+*-secrets.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

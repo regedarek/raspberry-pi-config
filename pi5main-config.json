@@ -1,0 +1,37 @@
+{
+  "hostname": "pi5main",
+  "locale_settings": {
+    "keyboard_layout": "us",
+    "timezone": "Europe/Warsaw"
+  },
+  "os_customization": {
+    "enable_ssh": true,
+    "set_username": "rege",
+    "username": "rege",
+    "password": "YOUR_PASSWORD_HERE"
+  },
+  "first_run": {
+    "hostname": "pi5main",
+    "locale": {
+      "keymap": "us",
+      "timezone": "Europe/Warsaw"
+    },
+    "ssh": {
+      "enabled": true,
+      "password_authentication": false,
+      "authorized_keys": [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJSIODacfq4bX1GtRPzuDskVULAvgM5UsyY/8Z5xBV9B"
+      ]
+    },
+    "user": {
+      "name": "rege",
+      "password": "YOUR_PASSWORD_HERE"
+    },
+    "wlan": {
+      "ssid": "YOUR_WIFI_SSID",
+      "password": "YOUR_WIFI_PASSWORD",
+      "country": "PL",
+      "hidden": false
+    }
+  }
+}
