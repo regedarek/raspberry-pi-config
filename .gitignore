@@ -1,6 +1,8 @@
 # Don't commit files with actual passwords
 *-private.json
 *-secrets.json
+*.local.json
+secrets.env
 
 # OS
 .DS_Store

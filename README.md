@@ -1,45 +1,63 @@
 # Raspberry Pi 5 Configuration
 
-Configuration files for setting up Raspberry Pi 5 with Raspberry Pi Imager.
+Automated configuration setup for Raspberry Pi 5 with secrets management.
+
+## Prerequisites
+- Raspberry Pi 5
+- microSD card (32GB+ recommended)
+- Computer with Raspberry Pi Imager
+- WiFi credentials
 
 ## Quick Setup
 
-### 1. Use with Raspberry Pi Imager
+### 1. Configure Secrets
 
-**Method 1: Use custom file**
-1. Download `pi5main-config.json`
-2. Open Raspberry Pi Imager
-3. Click gear icon ⚙️ or press `Cmd+Shift+X`
-4. Click "LOAD FROM FILE"
-5. Select `pi5main-config.json`
-6. Verify settings and flash
-
-**Method 2: Use custom URL**
-1. Open Raspberry Pi Imager
-2. Click "USE CUSTOM URL"
-3. Paste: `https://raw.githubusercontent.com/regedarek/raspberry-pi-config/main/pi5main-config.json`
-4. Flash
-
-### 2. Before Flashing - Update Credentials
-
-Edit `pi5main-config.json` and replace:
-- `YOUR_PASSWORD_HERE` → Your secure password
-- `YOUR_WIFI_SSID` → Your WiFi network name
-- `YOUR_WIFI_PASSWORD` → Your WiFi password
-
-### 3. What's Pre-Configured
-
-✅ **Hostname**: pi5main  
-✅ **Username**: rege  
-✅ **SSH**: Enabled with public key authentication  
-✅ **WiFi**: Auto-connect on first boot  
-✅ **Timezone**: Europe/Warsaw  
-✅ **Keyboard**: US layout  
-
-### 4. After First Boot
+Create and edit `secrets.env` with your actual credentials:
 
 ```bash
-# Wait ~2 minutes, then connect
+nano secrets.env
+```
+
+Add your values:
+```bash
+USER_PASSWORD=your_secure_password
+WIFI_SSID=your_wifi_name
+WIFI_PASSWORD=your_wifi_password
+SSH_PUBLIC_KEY="ssh-ed25519 YOUR_KEY_HERE"  # optional
+```
+
+**Note**: `secrets.env` is gitignored and won't be committed.
+
+### 2. Generate Configuration (Automated)
+
+Use the provided script to automatically generate your config:
+
+```bash
+./generate-config.sh
+```
+
+This script:
+- Reads your secrets from `secrets.env`
+- Replaces placeholders in `pi5main-config.json`
+- Creates `pi5main-config.local.json` (gitignored)
+
+### 3. Flash with Raspberry Pi Imager
+
+**Recommended Method:**
+1. Open Raspberry Pi Imager
+2. Press `Cmd+Shift+X` (Mac) or `Ctrl+Shift+X` (Windows/Linux)
+3. Click "LOAD FROM FILE"
+4. Select `pi5main-config.local.json`
+5. Flash to SD card
+
+**Alternative (manual):**
+- Load `pi5main-config.json` in imager
+- Manually update credentials in the interface
+
+### 4. Boot & Connect
+
+```bash
+# Wait ~2 minutes after powering on
 ssh rege@pi5main.local
 
 # Install Docker and essentials
@@ -59,21 +77,62 @@ ssh rege@pi5main.local
 docker --version
 ```
 
+## Pre-configured Settings
+
+✅ **Hostname**: pi5main  
+✅ **Username**: rege  
+✅ **SSH**: Enabled with public key authentication  
+✅ **WiFi**: Auto-connect on first boot  
+✅ **Timezone**: Europe/Warsaw  
+✅ **Keyboard**: US layout  
+
 ## Files
 
-- `pi5main-config.json` - Raspberry Pi Imager configuration
+- `pi5main-config.json` - Template configuration (safe to commit)
+- `secrets.env` - Your local secrets (gitignored)
+- `generate-config.sh` - Script to generate config from secrets
+- `pi5main-config.local.json` - Generated config (gitignored, auto-created)
+- `.gitignore` - Protects secrets and generated files
 - `README.md` - This file
 
-## SSH Key
-
-The configuration includes the SSH public key from the original pi5main setup.
-
-If you need to use a different SSH key, update the `authorized_keys` field in the JSON file with your public key:
+## Workflow Summary
 
 ```bash
-# Get your SSH public key on Mac
-cat ~/.ssh/id_ed25519.pub
+# 1. Edit your secrets
+nano secrets.env
+
+# 2. Generate config
+./generate-config.sh
+
+# 3. Use in Raspberry Pi Imager
+# Load: pi5main-config.local.json
 ```
+
+## SSH Key Setup
+
+To use your own SSH key:
+
+```bash
+# Get your SSH public key
+cat ~/.ssh/id_ed25519.pub
+
+# Add it to secrets.env
+nano secrets.env
+# Update the SSH_PUBLIC_KEY line
+
+# Regenerate config
+./generate-config.sh
+```
+
+The script will automatically replace the default SSH key with yours.
+
+## Security Notes
+
+- ⚠️ Never commit `secrets.env` or `*.local.json` files
+- Use strong, unique passwords
+- SSH key authentication is pre-configured
+- Change default password immediately after first boot
+- Keep your system updated regularly
 
 ## Based On
 

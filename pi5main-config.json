@@ -20,7 +20,7 @@
       "enabled": true,
       "password_authentication": false,
       "authorized_keys": [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJSIODacfq4bX1GtRPzuDskVULAvgM5UsyY/8Z5xBV9B"
+        "YOUR_SSH_PUBLIC_KEY_HERE"
       ]
     },
     "user": {
