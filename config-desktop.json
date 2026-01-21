@@ -1,0 +1,30 @@
+{
+  "hostname": "pi5main",
+  "first_run": {
+    "hostname": "pi5main",
+    "locale": {
+      "keymap": "us",
+      "timezone": "Europe/Warsaw"
+    },
+    "ssh": {
+      "enabled": true,
+      "password_authentication": false,
+      "authorized_keys": ["SSH_KEY"]
+    },
+    "user": {
+      "name": "rege",
+      "password": "PASSWORD"
+    },
+    "wlan": {
+      "ssid": "WIFI_SSID",
+      "password": "WIFI_PASS",
+      "country": "PL",
+      "hidden": false
+    }
+  },
+  "config": {
+    "gpu_mem": 256,
+    "hdmi_force_hotplug": 1,
+    "disable_overscan": 1
+  }
+}

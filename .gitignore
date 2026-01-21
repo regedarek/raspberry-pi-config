@@ -1,16 +1,11 @@
-# Don't commit files with actual passwords
-*-private.json
-*-secrets.json
+# Generated configs with real secrets
 *.local.json
+/tmp/
 secrets.env
 
-# OS
+# Backup files
+*.bak
+
+# OS files
 .DS_Store
 Thumbs.db
-
-# Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-*~

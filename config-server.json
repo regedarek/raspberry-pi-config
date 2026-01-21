@@ -1,0 +1,32 @@
+{
+  "hostname": "pi5main",
+  "first_run": {
+    "hostname": "pi5main",
+    "locale": {
+      "keymap": "us",
+      "timezone": "Europe/Warsaw"
+    },
+    "ssh": {
+      "enabled": true,
+      "password_authentication": false,
+      "authorized_keys": ["SSH_KEY"]
+    },
+    "user": {
+      "name": "rege",
+      "password": "PASSWORD"
+    },
+    "wlan": {
+      "ssid": "WIFI_SSID",
+      "password": "WIFI_PASS",
+      "country": "PL",
+      "hidden": false
+    }
+  },
+  "config": {
+    "dtoverlay": "disable-bt",
+    "dtparam": "audio=off",
+    "gpu_mem": 16,
+    "disable_splash": 1,
+    "boot_delay": 0
+  }
+}

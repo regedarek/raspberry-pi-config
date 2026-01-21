@@ -1,147 +1,163 @@
-# Raspberry Pi 5 Configuration
+# Raspberry Pi Auto Config
 
-Automated configuration setup for Raspberry Pi 5 with secrets management.
+**Zero-config** Pi Imager setup. Auto-detects WiFi, fetches passwords from keychain, injects SSH keys.
 
-## Prerequisites
-- Raspberry Pi 5
-- microSD card (32GB+ recommended)
-- Computer with Raspberry Pi Imager
-- WiFi credentials
-
-## Quick Setup
-
-### 1. Configure Secrets
-
-Create and edit `secrets.env` with your actual credentials:
+## ⚡ 30-Second Setup
 
 ```bash
-nano secrets.env
+./gen server          # 1. Generate config
+./gen serve           # 2. Start HTTP server
+# 3. Pi Imager → Cmd+Shift+X → Use custom URL:
+#    http://localhost:8000/pi-config-server.json
+# 4. Choose "Raspberry Pi OS Lite (64-bit)"
+# 5. Flash!
 ```
 
-Add your values:
-```bash
-USER_PASSWORD=your_secure_password
-WIFI_SSID=your_wifi_name
-WIFI_PASSWORD=your_wifi_password
-SSH_PUBLIC_KEY="ssh-ed25519 YOUR_KEY_HERE"  # optional
-```
-
-**Note**: `secrets.env` is gitignored and won't be committed.
-
-### 2. Generate Configuration (Automated)
-
-Use the provided script to automatically generate your config:
+## 🚀 Quick Start
 
 ```bash
-./generate-config.sh
+./gen              # Server config (headless)
+./gen desktop      # Desktop config (GUI)
 ```
 
-This script:
-- Reads your secrets from `secrets.env`
-- Replaces placeholders in `pi5main-config.json`
-- Creates `pi5main-config.local.json` (gitignored)
+That's it! The script automatically:
+- ✅ Detects your WiFi network
+- ✅ Fetches WiFi password from macOS Keychain (one prompt per session)
+- ✅ Finds your SSH key from `~/.ssh/`
+- ✅ Generates optimized config
+- ✅ Copies to clipboard
 
-### 3. Flash with Raspberry Pi Imager
+## 📋 Config Types
 
-**Recommended Method:**
+### 🖥️ Server (Headless)
+```bash
+./gen server
+./gen server pi5backup  # Custom hostname
+```
+
+**Recommended OS:** Raspberry Pi OS Lite (64-bit) - No desktop
+
+**Optimizations:**
+- Bluetooth disabled
+- Audio disabled  
+- GPU memory: 16MB (minimal)
+- Splash screen disabled
+- Fast boot (0s delay)
+- SSH-only access
+
+**Use for:** Web servers, Docker hosts, headless automation
+
+### 🖥️ Desktop (GUI)
+```bash
+./gen desktop
+./gen desktop pi5dev  # Custom hostname
+```
+
+**Recommended OS:** Raspberry Pi OS (64-bit) - Full desktop
+
+**Optimizations:**
+- GPU memory: 256MB
+- HDMI hotplug enabled
+- Overscan disabled
+- Full desktop environment
+
+**Use for:** Development workstation, media center, GUI apps
+
+## 🔧 Manual Override
+
+### Environment Variables
+```bash
+PI_PASSWORD=mypass ./gen server
+PI_PASSWORD=x SSID=MyWifi WIFI_PASS=secret ./gen
+```
+
+### Secrets File (Optional)
+Create `secrets.env`:
+```bash
+PI_PASSWORD=byledozimy
+```
+
+The script will auto-load it if present.
+
+## 📥 Load in Pi Imager
+
+### Method 1: Use Custom URL (Recommended)
+
+1. Generate config: `./gen server`
+2. Start HTTP server: `./gen serve`
+3. Open Raspberry Pi Imager
+4. **Choose OS:**
+   - **Server:** Raspberry Pi OS Lite (64-bit)
+   - **Desktop:** Raspberry Pi OS (64-bit) with desktop
+5. **Choose Storage:** Your SD card
+6. Press `Cmd+Shift+X` (Mac) or `Ctrl+Shift+X` (Windows/Linux)
+7. Select "Use custom URL"
+8. Enter: `http://localhost:8000/pi-config-server.json`
+9. Click "Yes" to apply settings
+10. Flash!
+
+### Method 2: Load from File
+
 1. Open Raspberry Pi Imager
-2. Press `Cmd+Shift+X` (Mac) or `Ctrl+Shift+X` (Windows/Linux)
-3. Click "LOAD FROM FILE"
-4. Select `pi5main-config.local.json`
-5. Flash to SD card
+2. Choose appropriate OS (see recommendations above)
+3. Choose Storage
+4. Press `Cmd+Shift+X` (Mac) or `Ctrl+Shift+X` (Windows/Linux)
+5. Click "Load from file" → Select `/tmp/pi-config-server.json`
+6. Flash!
 
-**Alternative (manual):**
-- Load `pi5main-config.json` in imager
-- Manually update credentials in the interface
+## 🔐 Security
 
-### 4. Boot & Connect
+- SSH key never committed
+- WiFi password from keychain (macOS prompts once per session)
+- Optional `secrets.env` is gitignored
+- Password auth disabled (SSH key only)
 
+## 📁 Files
+
+- `config-server.json` - Server template
+- `config-desktop.json` - Desktop template
+- `gen` - Magic generator script
+- `secrets.env` - Optional password storage (gitignored)
+
+## ⚙️ Default Settings
+
+- **Hostname**: `pi5main` (customizable)
+- **Username**: `rege`
+- **SSH**: Enabled (public key only)
+- **WiFi**: Auto-detected
+- **Timezone**: `Europe/Warsaw`
+- **Keyboard**: `us`
+
+## 🛠️ Requirements
+
+- macOS (for WiFi/keychain auto-detection)
+- SSH key in `~/.ssh/id_ed25519.pub` or `~/.ssh/id_rsa.pub`
+- Python 3 (for HTTP server - built into macOS)
+
+Linux users: Script will prompt for WiFi password.
+
+## 💡 Tips
+
+**Change defaults:** Edit `config-server.json` or `config-desktop.json`
+
+**Multiple Pis:** Run script multiple times with different hostnames
 ```bash
-# Wait ~2 minutes after powering on
-ssh rege@pi5main.local
-
-# Install Docker and essentials
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker rege
-sudo apt-get install -y docker-compose-plugin ufw fail2ban htop
-
-# Configure firewall
-sudo ufw allow 22 && sudo ufw allow 80 && sudo ufw allow 443
-sudo ufw --force enable
-
-# Logout and login for docker group
-exit
-ssh rege@pi5main.local
-
-# Verify
-docker --version
+./gen server pi5web
+./gen server pi5db
+./gen desktop pi5dev
 ```
 
-## Pre-configured Settings
+Each generates a separate config file.
 
-✅ **Hostname**: pi5main  
-✅ **Username**: rege  
-✅ **SSH**: Enabled with public key authentication  
-✅ **WiFi**: Auto-connect on first boot  
-✅ **Timezone**: Europe/Warsaw  
-✅ **Keyboard**: US layout  
+**Serve multiple configs:** Generate several configs, then run `./gen serve` to serve them all via HTTP. Pi Imager can then load any of them by URL.
 
-## Files
+## 🎯 OS Selection Guide
 
-- `pi5main-config.json` - Template configuration (safe to commit)
-- `secrets.env` - Your local secrets (gitignored)
-- `generate-config.sh` - Script to generate config from secrets
-- `pi5main-config.local.json` - Generated config (gitignored, auto-created)
-- `.gitignore` - Protects secrets and generated files
-- `README.md` - This file
+| Config Type | Recommended OS | Use Case |
+|-------------|---------------|----------|
+| **Server** | Raspberry Pi OS Lite (64-bit) | Web servers, Docker, headless automation |
+| **Desktop** | Raspberry Pi OS (64-bit) | Development, GUI apps, media center |
+| **Server** | Ubuntu Server 24.04 LTS | Advanced server setups, Kubernetes |
+| **Desktop** | Raspberry Pi OS Full (64-bit) | Maximum software, LibreOffice, games |
 
-## Workflow Summary
-
-```bash
-# 1. Edit your secrets
-nano secrets.env
-
-# 2. Generate config
-./generate-config.sh
-
-# 3. Use in Raspberry Pi Imager
-# Load: pi5main-config.local.json
-```
-
-## SSH Key Setup
-
-To use your own SSH key:
-
-```bash
-# Get your SSH public key
-cat ~/.ssh/id_ed25519.pub
-
-# Add it to secrets.env
-nano secrets.env
-# Update the SSH_PUBLIC_KEY line
-
-# Regenerate config
-./generate-config.sh
-```
-
-The script will automatically replace the default SSH key with yours.
-
-## Security Notes
-
-- ⚠️ Never commit `secrets.env` or `*.local.json` files
-- Use strong, unique passwords
-- SSH key authentication is pre-configured
-- Change default password immediately after first boot
-- Keep your system updated regularly
-
-## Based On
-
-Extracted from actual pi5main.local configuration:
-- Debian 13 (Trixie) - Raspberry Pi OS
-- NVMe SSD boot
-- 16GB RAM
-- WiFi connection
-
-## License
-
-MIT
+💡 **Tip:** Always choose 64-bit OS for Pi 4/5 for better performance.

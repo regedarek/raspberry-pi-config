@@ -1,0 +1,203 @@
+#!/bin/bash
+# Fully automatic Pi config generator with multiple config types
+# Usage: ./gen [server|desktop] [hostname]
+# Usage: ./gen serve [port] - Start HTTP server for Pi Imager URL
+
+set -e
+
+# Check if serving HTTP
+if [ "$1" = "serve" ]; then
+    PORT=${2:-8000}
+    echo "🌐 Starting HTTP server on port $PORT..."
+    echo ""
+    echo "📋 Available configs:"
+    
+    SERVER_COUNT=0
+    DESKTOP_COUNT=0
+    
+    for config in /tmp/pi-config-*.json; do
+        if [ -f "$config" ]; then
+            filename=$(basename "$config")
+            if [[ "$filename" == *"server"* ]]; then
+                echo "   🖥️  Server:  http://localhost:$PORT/$filename"
+                SERVER_COUNT=$((SERVER_COUNT + 1))
+            elif [[ "$filename" == *"desktop"* ]]; then
+                echo "   🖥️  Desktop: http://localhost:$PORT/$filename"
+                DESKTOP_COUNT=$((DESKTOP_COUNT + 1))
+            else
+                echo "   📄 $filename: http://localhost:$PORT/$filename"
+            fi
+        fi
+    done
+    
+    if [ $SERVER_COUNT -eq 0 ] && [ $DESKTOP_COUNT -eq 0 ]; then
+        echo "   ⚠️  No configs found! Run './gen server' or './gen desktop' first"
+        exit 1
+    fi
+    
+    echo ""
+    echo "📥 In Pi Imager:"
+    echo "   1. Choose OS (Lite for server, Full for desktop)"
+    echo "   2. Choose Storage"
+    echo "   3. Press Cmd/Ctrl+Shift+X"
+    echo "   4. Select 'Use custom URL'"
+    echo "   5. Paste URL from above"
+    echo ""
+    echo "⏹️  Press Ctrl+C to stop server"
+    echo ""
+    cd /tmp && python3 -m http.server $PORT
+    exit 0
+fi
+
+# Config selection
+CONFIG_TYPE=${1:-server}
+HOSTNAME=${2:-pi5main}
+
+# Validate config type
+if [[ ! "$CONFIG_TYPE" =~ ^(server|desktop)$ ]]; then
+    echo "❌ Invalid config type. Use 'server' or 'desktop'"
+    echo "Usage: ./gen [server|desktop] [hostname]"
+    exit 1
+fi
+
+CONFIG_FILE="config-${CONFIG_TYPE}.json"
+OUTPUT="/tmp/pi-config-${CONFIG_TYPE}.json"
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Config file not found: $CONFIG_FILE"
+    exit 1
+fi
+
+echo "🔧 Generating $CONFIG_TYPE config for $HOSTNAME..."
+echo ""
+
+# Auto-detect WiFi SSID (macOS)
+SSID=""
+if command -v networksetup >/dev/null 2>&1; then
+    # Try to get currently connected WiFi
+    WIFI_DEVICE=$(networksetup -listallhardwareports | awk '/Wi-Fi/{getline; print $2}')
+    if [ -n "$WIFI_DEVICE" ]; then
+        SSID=$(networksetup -getairportnetwork "$WIFI_DEVICE" 2>/dev/null | sed 's/Current Wi-Fi Network: //')
+        if [[ "$SSID" == *"not associated"* ]] || [ -z "$SSID" ]; then
+            SSID=""
+        fi
+    fi
+    
+    # If not connected, get the preferred network from system preferences
+    if [ -z "$SSID" ] && [ -n "$WIFI_DEVICE" ]; then
+        SSID=$(networksetup -listpreferredwirelessnetworks "$WIFI_DEVICE" 2>/dev/null | head -2 | tail -1 | xargs)
+        if [ -n "$SSID" ]; then
+            echo "📡 Using preferred WiFi network: $SSID"
+        fi
+    fi
+fi
+
+# Fallback to Linux methods
+if [ -z "$SSID" ]; then
+    if command -v nmcli >/dev/null 2>&1; then
+        SSID=$(nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2)
+    elif command -v iwgetid >/dev/null 2>&1; then
+        SSID=$(iwgetid -r)
+    fi
+fi
+
+if [ -z "$SSID" ]; then
+    echo "⚠️  Could not auto-detect WiFi SSID"
+    read -p "Enter WiFi SSID: " SSID
+else
+    if [[ ! "$SSID" == *"preferred"* ]]; then
+        echo "📡 Detected WiFi: $SSID"
+    fi
+fi
+
+# Get WiFi password from keychain (macOS only)
+WIFI_PASS=""
+if command -v security >/dev/null 2>&1 && [ -n "$SSID" ]; then
+    CURRENT_USER=$(whoami)
+    WIFI_PASS=$(security find-generic-password -ga "$SSID" 2>&1 >/dev/null | grep "password:" | cut -d'"' -f2)
+    if [ -n "$WIFI_PASS" ]; then
+        echo "🔑 WiFi password retrieved from keychain (user: $CURRENT_USER)"
+    fi
+fi
+
+if [ -z "$WIFI_PASS" ]; then
+    echo "⚠️  Could not get WiFi password from keychain"
+    read -sp "Enter WiFi password: " WIFI_PASS
+    echo
+fi
+
+# Get Pi user password (use env var, secrets.env, or prompt)
+if [ -z "$PI_PASSWORD" ]; then
+    if [ -f "secrets.env" ]; then
+        source secrets.env 2>/dev/null
+        echo "🔐 Pi password loaded from secrets.env"
+    fi
+fi
+
+if [ -z "$PI_PASSWORD" ]; then
+    echo ""
+    read -sp "Enter Pi user password for 'rege': " PI_PASSWORD
+    echo
+fi
+
+# Auto-find SSH key
+if [ -f "$HOME/.ssh/id_ed25519.pub" ]; then
+    SSH_KEY=$(cat "$HOME/.ssh/id_ed25519.pub")
+    echo "🔐 Using SSH key: ~/.ssh/id_ed25519.pub"
+elif [ -f "$HOME/.ssh/id_rsa.pub" ]; then
+    SSH_KEY=$(cat "$HOME/.ssh/id_rsa.pub")
+    echo "🔐 Using SSH key: ~/.ssh/id_rsa.pub"
+else
+    echo "⚠️  No SSH key found in ~/.ssh/"
+    SSH_KEY="YOUR_SSH_KEY_HERE"
+fi
+
+echo ""
+echo "⚙️  Generating config..."
+
+# Generate config
+cat "$CONFIG_FILE" | \
+    sed "s|pi5main|$HOSTNAME|g" | \
+    sed "s|PASSWORD|$PI_PASSWORD|g" | \
+    sed "s|WIFI_SSID|$SSID|g" | \
+    sed "s|WIFI_PASS|$WIFI_PASS|g" | \
+    sed "s|SSH_KEY|$SSH_KEY|g" > "$OUTPUT"
+
+# Copy to clipboard
+if command -v pbcopy >/dev/null 2>&1; then
+    cat "$OUTPUT" | pbcopy
+    echo "✅ Config copied to clipboard (macOS)"
+elif command -v xclip >/dev/null 2>&1; then
+    cat "$OUTPUT" | xclip -selection clipboard
+    echo "✅ Config copied to clipboard (Linux)"
+elif command -v clip >/dev/null 2>&1; then
+    cat "$OUTPUT" | clip
+    echo "✅ Config copied to clipboard (Windows)"
+fi
+
+echo "✅ Config saved to: $OUTPUT"
+echo ""
+echo "📋 Configuration:"
+echo "  Type: $CONFIG_TYPE"
+echo "  Hostname: $HOSTNAME"
+echo "  User: rege"
+echo "  WiFi: $SSID"
+echo "  SSH Key: ${SSH_KEY:0:50}..."
+echo ""
+if [ "$CONFIG_TYPE" = "server" ]; then
+    echo "🖥️  Server optimizations:"
+    echo "  • Bluetooth disabled"
+    echo "  • Audio disabled"
+    echo "  • GPU memory: 16MB (minimal)"
+    echo "  • Splash screen disabled"
+    echo "  • Boot delay: 0s"
+elif [ "$CONFIG_TYPE" = "desktop" ]; then
+    echo "🖥️  Desktop optimizations:"
+    echo "  • GPU memory: 256MB"
+    echo "  • HDMI hotplug enabled"
+    echo "  • Overscan disabled"
+fi
+echo ""
+echo "📥 Pi Imager options:"
+echo "   1. Cmd/Ctrl+Shift+X → Load from file → $OUTPUT"
+echo "   2. Run './gen serve' then use: http://localhost:8000/$(basename $OUTPUT)"
