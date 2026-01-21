@@ -5,12 +5,9 @@
 ## ⚡ 30-Second Setup
 
 ```bash
-./gen server          # 1. Generate config
-./gen serve           # 2. Start HTTP server
-# 3. Pi Imager → Cmd+Shift+X → Use custom URL:
-#    http://localhost:8000/pi-config-server.json
-# 4. Choose "Raspberry Pi OS Lite (64-bit)"
-# 5. Flash!
+./gen server          # 1. Generate + auto-serve (URL in clipboard!)
+# 2. Pi Imager → Choose OS → Cmd+Shift+X → Use custom URL → Paste (Cmd+V)
+# 3. Flash!
 ```
 
 ## 🚀 Quick Start
@@ -25,7 +22,8 @@ That's it! The script automatically:
 - ✅ Fetches WiFi password from macOS Keychain (one prompt per session)
 - ✅ Finds your SSH key from `~/.ssh/`
 - ✅ Generates optimized config
-- ✅ Copies to clipboard
+- ✅ **Starts HTTP server**
+- ✅ **Copies URL to clipboard**
 
 ## 📋 Config Types
 
@@ -81,28 +79,31 @@ The script will auto-load it if present.
 
 ## 📥 Load in Pi Imager
 
-### Method 1: Use Custom URL (Recommended)
+### Automatic (Recommended)
 
-1. Generate config: `./gen server`
-2. Start HTTP server: `./gen serve`
-3. Open Raspberry Pi Imager
-4. **Choose OS:**
+1. Run: `./gen server` (or `./gen desktop`)
+   - HTTP server starts automatically
+   - URL copied to clipboard
+2. Open Raspberry Pi Imager
+3. **Choose OS:**
    - **Server:** Raspberry Pi OS Lite (64-bit)
    - **Desktop:** Raspberry Pi OS (64-bit) with desktop
-5. **Choose Storage:** Your SD card
-6. Press `Cmd+Shift+X` (Mac) or `Ctrl+Shift+X` (Windows/Linux)
-7. Select "Use custom URL"
-8. Enter: `http://localhost:8000/pi-config-server.json`
-9. Click "Yes" to apply settings
-10. Flash!
+4. **Choose Storage:** Your SD card
+5. Press `Cmd+Shift+X` (Mac) or `Ctrl+Shift+X` (Windows/Linux)
+6. Select "Use custom URL"
+7. **Paste (Cmd+V)** - URL already in clipboard!
+8. Click "Yes" to apply settings
+9. Flash!
 
-### Method 2: Load from File
+### Manual (Load from File)
 
-1. Open Raspberry Pi Imager
-2. Choose appropriate OS (see recommendations above)
-3. Choose Storage
-4. Press `Cmd+Shift+X` (Mac) or `Ctrl+Shift+X` (Windows/Linux)
-5. Click "Load from file" → Select `/tmp/pi-config-server.json`
+If you prefer not to use the HTTP server:
+
+1. Run: `./gen server` then Ctrl+C to stop server
+2. Open Raspberry Pi Imager
+3. Choose appropriate OS
+4. Choose Storage
+5. Press `Cmd+Shift+X` → "Load from file" → `/tmp/pi-config-server.json`
 6. Flash!
 
 ## 🔐 Security
@@ -149,7 +150,7 @@ Linux users: Script will prompt for WiFi password.
 
 Each generates a separate config file.
 
-**Serve multiple configs:** Generate several configs, then run `./gen serve` to serve them all via HTTP. Pi Imager can then load any of them by URL.
+**Multiple configs:** Each `./gen` command restarts the server with the new config URL in clipboard.
 
 ## 🎯 OS Selection Guide
 

@@ -1,53 +1,31 @@
 #!/bin/bash
 # Fully automatic Pi config generator with multiple config types
 # Usage: ./gen [server|desktop] [hostname]
-# Usage: ./gen serve [port] - Start HTTP server for Pi Imager URL
 
 set -e
 
-# Check if serving HTTP
-if [ "$1" = "serve" ]; then
-    PORT=${2:-8000}
+# Function to start HTTP server
+start_server() {
+    local PORT=${1:-8000}
+    local CONFIG_URL=$2
+    
+    echo ""
     echo "🌐 Starting HTTP server on port $PORT..."
     echo ""
-    echo "📋 Available configs:"
-    
-    SERVER_COUNT=0
-    DESKTOP_COUNT=0
-    
-    for config in /tmp/pi-config-*.json; do
-        if [ -f "$config" ]; then
-            filename=$(basename "$config")
-            if [[ "$filename" == *"server"* ]]; then
-                echo "   🖥️  Server:  http://localhost:$PORT/$filename"
-                SERVER_COUNT=$((SERVER_COUNT + 1))
-            elif [[ "$filename" == *"desktop"* ]]; then
-                echo "   🖥️  Desktop: http://localhost:$PORT/$filename"
-                DESKTOP_COUNT=$((DESKTOP_COUNT + 1))
-            else
-                echo "   📄 $filename: http://localhost:$PORT/$filename"
-            fi
-        fi
-    done
-    
-    if [ $SERVER_COUNT -eq 0 ] && [ $DESKTOP_COUNT -eq 0 ]; then
-        echo "   ⚠️  No configs found! Run './gen server' or './gen desktop' first"
-        exit 1
-    fi
-    
+    echo "📋 Your config URL (copied to clipboard):"
+    echo "   $CONFIG_URL"
     echo ""
     echo "📥 In Pi Imager:"
     echo "   1. Choose OS (Lite for server, Full for desktop)"
     echo "   2. Choose Storage"
     echo "   3. Press Cmd/Ctrl+Shift+X"
     echo "   4. Select 'Use custom URL'"
-    echo "   5. Paste URL from above"
+    echo "   5. Paste (Cmd+V) - URL already in clipboard!"
     echo ""
     echo "⏹️  Press Ctrl+C to stop server"
     echo ""
     cd /tmp && python3 -m http.server $PORT
-    exit 0
-fi
+}
 
 # Config selection
 CONFIG_TYPE=${1:-server}
@@ -140,7 +118,8 @@ if [ -z "$PI_PASSWORD" ]; then
     echo
 fi
 
-# Auto-find SSH key
+# Auto-find SSH key (find any .pub file in ~/.ssh/)
+SSH_KEY=""
 if [ -f "$HOME/.ssh/id_ed25519.pub" ]; then
     SSH_KEY=$(cat "$HOME/.ssh/id_ed25519.pub")
     echo "🔐 Using SSH key: ~/.ssh/id_ed25519.pub"
@@ -148,8 +127,16 @@ elif [ -f "$HOME/.ssh/id_rsa.pub" ]; then
     SSH_KEY=$(cat "$HOME/.ssh/id_rsa.pub")
     echo "🔐 Using SSH key: ~/.ssh/id_rsa.pub"
 else
-    echo "⚠️  No SSH key found in ~/.ssh/"
-    SSH_KEY="YOUR_SSH_KEY_HERE"
+    # Find any .pub file in ~/.ssh/
+    FIRST_KEY=$(find "$HOME/.ssh" -name "*.pub" -type f 2>/dev/null | head -1)
+    if [ -n "$FIRST_KEY" ]; then
+        SSH_KEY=$(cat "$FIRST_KEY")
+        echo "🔐 Using SSH key: $FIRST_KEY"
+    else
+        echo "⚠️  No SSH key found in ~/.ssh/"
+        echo "💡 Generate one with: ssh-keygen -t ed25519"
+        SSH_KEY="YOUR_SSH_KEY_HERE"
+    fi
 fi
 
 echo ""
@@ -197,7 +184,20 @@ elif [ "$CONFIG_TYPE" = "desktop" ]; then
     echo "  • HDMI hotplug enabled"
     echo "  • Overscan disabled"
 fi
-echo ""
-echo "📥 Pi Imager options:"
-echo "   1. Cmd/Ctrl+Shift+X → Load from file → $OUTPUT"
-echo "   2. Run './gen serve' then use: http://localhost:8000/$(basename $OUTPUT)"
+# Copy URL to clipboard
+PORT=8000
+CONFIG_URL="http://localhost:$PORT/$(basename $OUTPUT)"
+
+if command -v pbcopy >/dev/null 2>&1; then
+    echo "$CONFIG_URL" | pbcopy
+    echo "📋 URL copied to clipboard!"
+elif command -v xclip >/dev/null 2>&1; then
+    echo "$CONFIG_URL" | xclip -selection clipboard
+    echo "📋 URL copied to clipboard!"
+elif command -v clip >/dev/null 2>&1; then
+    echo "$CONFIG_URL" | clip
+    echo "📋 URL copied to clipboard!"
+fi
+
+# Auto-start HTTP server
+start_server $PORT "$CONFIG_URL"
