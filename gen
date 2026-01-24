@@ -188,14 +188,18 @@ fi
 PORT=8000
 CONFIG_URL="http://localhost:$PORT/$(basename $OUTPUT)"
 
+echo ""
+echo "🔗 Config URL: $CONFIG_URL"
+echo ""
+
 if command -v pbcopy >/dev/null 2>&1; then
-    echo "$CONFIG_URL" | pbcopy
+    printf "%s" "$CONFIG_URL" | pbcopy
     echo "📋 URL copied to clipboard!"
 elif command -v xclip >/dev/null 2>&1; then
-    echo "$CONFIG_URL" | xclip -selection clipboard
+    printf "%s" "$CONFIG_URL" | xclip -selection clipboard
     echo "📋 URL copied to clipboard!"
 elif command -v clip >/dev/null 2>&1; then
-    echo "$CONFIG_URL" | clip
+    printf "%s" "$CONFIG_URL" | clip
     echo "📋 URL copied to clipboard!"
 fi
 
