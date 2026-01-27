@@ -162,3 +162,18 @@ Each generates a separate config file.
 | **Desktop** | Raspberry Pi OS Full (64-bit) | Maximum software, LibreOffice, games |
 
 💡 **Tip:** Always choose 64-bit OS for Pi 4/5 for better performance.
+
+---
+
+## ⏭️ What's Next?
+
+After Pi boots, install infrastructure:
+
+```bash
+ssh rege@pi5main.local
+git clone https://github.com/rockcodelabs/infrastructure.git
+cd infrastructure
+./scripts/setup-pi.sh
+```
+
+See: https://github.com/rockcodelabs/infrastructure
